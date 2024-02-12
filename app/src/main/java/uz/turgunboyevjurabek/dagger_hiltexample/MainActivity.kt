@@ -48,12 +48,14 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Observer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.Dispatcher
 import uz.turgunboyevjurabek.dagger_hiltexample.Model.madels.CatsFacts
 import uz.turgunboyevjurabek.dagger_hiltexample.Model.madels.Data
 import uz.turgunboyevjurabek.dagger_hiltexample.Model.madels.User
 import uz.turgunboyevjurabek.dagger_hiltexample.Model.network.ApiClient
+import uz.turgunboyevjurabek.dagger_hiltexample.View.ShimmerListItem
 import uz.turgunboyevjurabek.dagger_hiltexample.ViewModel.FactsViewModel
 import uz.turgunboyevjurabek.dagger_hiltexample.ui.theme.DaggerhiltExampleTheme
 import uz.turgunboyevjurabek.dagger_hiltexample.utils.Status
@@ -76,9 +78,12 @@ class MainActivity : ComponentActivity() {
                     val list = ArrayList<CatsFacts>()
                     val scope = rememberCoroutineScope()
                     val viewModel= viewModels<FactsViewModel>()
+                    var isLoading by remember {
+                        mutableStateOf(true)
+                    }
 
                     LaunchedEffect(key1 = true){
-                        viewModel.value.getFactsFromApi().observe(this@MainActivity, Observer {
+                        viewModel.value.getFactsFromApi().observe(this@MainActivity, Observer { it ->
                             when(it.status){
                                 Status.LOADING -> {
                                     Toast.makeText(context, "${it.message}", Toast.LENGTH_SHORT).show()
@@ -87,20 +92,32 @@ class MainActivity : ComponentActivity() {
                                     Toast.makeText(context,  "afsus ${it.message}", Toast.LENGTH_SHORT).show()
                                 }
                                 Status.SUCCESS -> {
-                                    Toast.makeText(context, "ura ${it.data?.data}", Toast.LENGTH_SHORT).show()
+                                    data = it.data!!
+                                    isLoading=false
+
                                 }
                             }
                         })
                     }
+                    ShimmerListItem(
+                        isLoading = isLoading,
+                        contentAfterLoading = {
+                            list.addAll(listOf(data))
+                            LazyColumn(modifier = Modifier
+                                .fillMaxSize()
+                            ){
+                                data.data?.let {it->
+                                    items(it.size){
+                                        UI(list,it)
+                                    }
+                                }
+                            }
+                        },
+                        modifier =Modifier
+                            .padding(16.dp)
 
-//                    list.addAll(listOf(data))
-//                    LazyColumn{
-//                        data.data?.let {it->
-//                            items(it.size){
-//                                UI(list,it)
-//                            }
-//                        }
-//                    }
+                    )
+
 
                 }
             }
